@@ -1,0 +1,67 @@
+resource_registry:
+  #Example pre-deploy script for controller. NodeExtraConfig would do all nodes. ComputeExtraConfigPre compute etc
+  OS::TripleO::ControllerExtraConfigPre: /home/stack/basic-overcloud/extraconfig/pre_deploy/pre-deploy.yaml
+
+  # Example runs post deploy on all nodes.
+  #OS::TripleO::NodeExtraConfigPost: /home/stack/basic-overcloud/extraconfig/post_deploy/extraconfig.yaml
+
+parameter_defaults:
+
+  # The following are a collection of parameters that are normally useful:
+  TimeZone: 'Europe/London' 
+  # Sets the domain name for the overcloud. Also need to edit /etc/nova/nova.conf - 
+  CloudDomain: 'example.com'
+  # Add Lbaasv2 support to neutron.conf
+  NeutronServicePlugins: 'router,qos,neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'
+  # Set Neutron MTU
+  NeutronGlobalPhysnetMtu: 8000
+  # Set Fixed IP addresses for the Internal & External VIPs. Should fall outside of the pool defined in network-environment.yaml
+  InternalApiVirtualFixedIPs: [{'ip_address':'192.168.20.70'}]
+  PublicVirtualFixedIPs: [{'ip_address':'192.168.10.10'}]
+  # Have firewalld enabled - for additional services such as monitoring, backups or whatever
+  ManageFirewall: 'False'
+  # Comma seperated list if NTP servers
+  NtpServer: '192.168.10.1'
+  # needed for provider networks. Instances get metadata via DHCP namespace as no router is present
+  NeutronEnableIsolatedMetadata: True
+
+
+  # Set hostname formatting for Compute & Controller nodes
+  ComputeHostnameFormat: 'compute-%index%'
+  ControllerHostnameFormat: 'controller-%index%'
+
+  # Per node hiera output. ID obtained from - openstack baremetal introspection data save <ID> | jq .extra.system.product.uuid
+  NodeDataLookup: |
+    {
+    "48AF818C-6D04-4EE1-91DF-E576C277C2F6": {"scaleiofset": "faultset1", "name": "bob"}
+    }
+
+
+  # Pass hieradata to controller nodes
+  # ExtraConfig would do all nodes
+  controllerExtraConfig:
+      # Horizon multi-domain ldap configuration
+      horizon::keystone_multidomain_support: True
+      horizon::keystone_default_domain: Default
+      horizon::api_versions: "{'identity': 3}"
+      cinder::api::auth_uri: http://192.168.20.70:5000/v3
+      keystone::config::keystone_config: 
+                 identity/domain_config_dir: 
+                        value: '/etc/keystone/domains'
+                 assignment/driver: 
+                        value: 'keystone.assignment.backends.sql.Assignment'
+                 identity/domain_specific_drivers_enabled:
+                        value: 'True'
+
+      # Configure lbaasv2
+
+      neutron::services::lbaas::service_providers: '["LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default"]'
+     
+      neutron::agents::lbaas::user_group: 'haproxy'
+      neutron::agents::lbaas::device_driver: 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver'
+      neutron::agents::lbaas::manage_haproxy_package: 'false'
+
+      # Include additional classes for controller nodes
+      controller_classes:
+        - 'neutron::agents::lbaas'
+        - 'neutron::services::lbaas'
