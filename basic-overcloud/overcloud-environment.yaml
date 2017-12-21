@@ -1,9 +1,9 @@
 resource_registry:
   #Example pre-deploy script for controller. NodeExtraConfig would do all nodes. ComputeExtraConfigPre compute etc
-  OS::TripleO::ControllerExtraConfigPre: /home/stack/basic-overcloud/extraconfig/pre_deploy/pre-deploy.yaml
+  OS::TripleO::ControllerExtraConfigPre: /home/stack/templates/basic-overcloud/extraconfig/pre_deploy/pre-deploy.yaml
 
   # Example runs post deploy on all nodes.
-  #OS::TripleO::NodeExtraConfigPost: /home/stack/basic-overcloud/extraconfig/post_deploy/extraconfig.yaml
+  #OS::TripleO::NodeExtraConfigPost: /home/stack/templates/basic-overcloud/extraconfig/post_deploy/extraconfig.yaml
 
 parameter_defaults:
 
@@ -11,6 +11,7 @@ parameter_defaults:
   TimeZone: 'Europe/London' 
   # Sets the domain name for the overcloud. Also need to edit /etc/nova/nova.conf - 
   CloudDomain: 'example.com'
+  CloudName: 'openstack.example.com'
   # Add Lbaasv2 support to neutron.conf
   NeutronServicePlugins: 'router,qos,neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'
   # Set Neutron MTU
